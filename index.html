@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechLead TZ Overlap · Zapier</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surf: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #8b949e; --gold: #f0d060;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .5rem 1.1rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      gap: .75rem;
+    }
+#top-hint {
+      font-size: .72rem; color: var(--muted); transition: color .2s;
+      text-align: right; flex: 1;
+    }
+    #top-hint.active { color: #58a6ff; cursor: pointer; }
+    #top-hint.active:hover { color: var(--text); }
+    .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+    .clock-area {
+      flex: 1; min-width: 0; min-height: 0;
+      display: flex; align-items: center; justify-content: center; padding: .75rem;
+    }
+    #clock { width: 100%; height: 100%; max-width: 100%; max-height: 100%; }
+    .sidebar {
+      width: 228px; flex-shrink: 0; border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .legend { flex: 1; overflow-y: auto; padding: .7rem .8rem; }
+    .legend-hdr {
+      font-size: .64rem; color: var(--muted); text-transform: uppercase;
+      letter-spacing: .07em; font-weight: 600; margin-bottom: .45rem;
+    }
+    .l-item {
+      display: flex; gap: .45rem; padding: .35rem .4rem .35rem .3rem;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      border-left: 2px solid transparent; border-radius: 3px;
+      transition: border-color .15s, background .15s;
+    }
+    .l-item:last-child { border-bottom: none; }
+    .l-item.selected {
+      background: rgba(255,255,255,.05);
+    }
+    .l-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    /* Editable city name */
+    .l-city {
+      font-size: .82rem; font-weight: 500; line-height: 1.2;
+      border-bottom: 1px dashed transparent; transition: border-color .15s;
+      cursor: text; outline: none; min-width: 10px;
+    }
+    .l-city:hover { border-bottom-color: rgba(255,255,255,.25); }
+    .l-city:focus { border-bottom-color: #58a6ff; }
+    .l-time { font-size: .7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .l-hrs  { font-size: .67rem; color: var(--muted); }
+    .overlap-block { margin-top: .6rem; padding-top: .6rem; border-top: 1px solid var(--border); }
+    .overlap-val { font-size: .82rem; color: var(--gold); }
+    .overlap-val.none { color: var(--muted); font-size: .78rem; }
+    .overlap-range { font-size: .68rem; color: var(--muted); margin-top: 1px; }
+    .min-note {
+      margin-top: .6rem; padding-top: .6rem; border-top: 1px solid var(--border);
+      font-size: .67rem; color: var(--muted); line-height: 1.45;
+    }
+    /* Config */
+    .cfg-toggle {
+      padding: .42rem .8rem; border-top: 1px solid var(--border);
+      background: var(--surf); flex-shrink: 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .78rem; color: var(--muted); user-select: none;
+    }
+    .cfg-toggle:hover { color: var(--text); }
+    .cfg-body {
+      border-top: 1px solid var(--border); background: var(--surf);
+      flex-shrink: 0; overflow-y: auto; max-height: 42vh; padding: .6rem .75rem;
+    }
+    .cfg-body.hidden { display: none; }
+    .cfg-zone {
+      margin-bottom: .5rem; padding-bottom: .5rem;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .cfg-zone:last-child { border-bottom: none; margin-bottom: 0; }
+    .cfg-r1, .cfg-r2 { display: flex; align-items: center; gap: .35rem; margin-bottom: .22rem; }
+    .cfg-r2 { margin-bottom: 0; }
+    .cdot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    select, input[type="time"] {
+      background: rgba(0,0,0,.4); border: 1px solid var(--border);
+      color: var(--text); padding: .22rem .4rem; border-radius: 4px; font-size: .73rem;
+    }
+    select { flex: 1; min-width: 0; cursor: pointer; }
+    input[type="time"] { flex: 1; }
+    select:focus, input:focus { outline: none; border-color: #58a6ff; }
+    .del-btn {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: .85rem; padding: 0; line-height: 1; flex-shrink: 0;
+    }
+    .del-btn:hover { color: #ff7b72; }
+    .cfg-lbl { font-size: .63rem; color: var(--muted); flex-shrink: 0; }
+    .add-btn {
+      width: 100%; background: none; border: 1px dashed var(--border);
+      color: var(--muted); border-radius: 4px; padding: .28rem;
+      font-size: .73rem; cursor: pointer; margin-top: .4rem;
+    }
+    .add-btn:hover { border-color: var(--muted); color: var(--text); }
+    /* Share button */
+    .share-btn {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 4px; padding: .2rem .5rem; font-size: .7rem; cursor: pointer;
+      flex-shrink: 0; white-space: nowrap; transition: border-color .15s, color .15s;
+    }
+    .share-btn:hover { border-color: var(--muted); color: var(--text); }
+    .share-btn.copied { border-color: #3fb950; color: #3fb950; }
+    /* Hover tooltip */
+    #hover-tip {
+      position: fixed; display: none; pointer-events: none; z-index: 100;
+      background: rgba(13,17,23,.96); border: 1px solid var(--border);
+      border-radius: 6px; padding: .45rem .65rem; min-width: 150px;
+    }
+    #hover-tip .ht-ref { font-size: .68rem; color: var(--muted); margin-bottom: .28rem;
+      padding-bottom: .25rem; border-bottom: 1px solid var(--border); }
+    #hover-tip .ht-row { display: flex; align-items: center; gap: .38rem;
+      font-size: .72rem; padding: .08rem 0; }
+    #hover-tip .ht-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    #hover-tip .ht-name { color: var(--muted); flex: 1; }
+    #hover-tip .ht-val { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="share-btn" id="share-btn">Copy link</button>
+  <span id="top-hint">Click a ring to inspect · clock shows your local time</span>
+</div>
+<div id="hover-tip"></div>
+
+<div class="main">
+  <div class="clock-area">
+    <svg id="clock" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div class="sidebar">
+    <div class="legend" id="legend"></div>
+    <div class="cfg-toggle" id="cfg-toggle">
+      <span>⚙ Configure timezones</span>
+      <span id="cfg-arrow">▸</span>
+    </div>
+    <div class="cfg-body hidden" id="cfg-body">
+      <div id="cfg-zones"></div>
+      <button class="add-btn" id="add-btn">+ Add timezone</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Timezone data ──────────────────────────────────────────────────────────
+const TZ_GROUPS = [
+  { label: 'Pacific / Oceania', options: [
+    { value: 'Pacific/Auckland',   name: 'Auckland' },
+    { value: 'Pacific/Fiji',       name: 'Fiji' },
+    { value: 'Australia/Sydney',   name: 'Sydney' },
+    { value: 'Australia/Melbourne',name: 'Melbourne' },
+    { value: 'Australia/Perth',    name: 'Perth' },
+    { value: 'Pacific/Honolulu',   name: 'Honolulu' },
+  ]},
+  { label: 'Asia', options: [
+    { value: 'Asia/Tokyo',     name: 'Tokyo' },
+    { value: 'Asia/Seoul',     name: 'Seoul' },
+    { value: 'Asia/Shanghai',  name: 'Shanghai' },
+    { value: 'Asia/Singapore', name: 'Singapore' },
+    { value: 'Asia/Bangkok',   name: 'Bangkok' },
+    { value: 'Asia/Kolkata',   name: 'India (IST)' },
+    { value: 'Asia/Dubai',     name: 'Dubai' },
+    { value: 'Asia/Riyadh',    name: 'Riyadh' },
+  ]},
+  { label: 'Europe / Africa', options: [
+    { value: 'Europe/Moscow',       name: 'Moscow' },
+    { value: 'Europe/Istanbul',     name: 'Istanbul' },
+    { value: 'Europe/Helsinki',     name: 'Helsinki' },
+    { value: 'Europe/Berlin',       name: 'Berlin / Paris' },
+    { value: 'Europe/London',       name: 'London' },
+    { value: 'Europe/Lisbon',       name: 'Lisbon' },
+    { value: 'UTC',                 name: 'UTC' },
+    { value: 'Africa/Lagos',        name: 'Lagos' },
+    { value: 'Africa/Nairobi',      name: 'Nairobi' },
+    { value: 'Africa/Johannesburg', name: 'Johannesburg' },
+  ]},
+  { label: 'Americas', options: [
+    { value: 'America/New_York',                  name: 'New York (ET)' },
+    { value: 'America/Chicago',                   name: 'Chicago / St. Louis (CT)' },
+    { value: 'America/Denver',                    name: 'Denver (MT)' },
+    { value: 'America/Phoenix',                   name: 'Phoenix (no DST)' },
+    { value: 'America/Los_Angeles',               name: 'Seattle / LA (PT)' },
+    { value: 'America/Anchorage',                 name: 'Anchorage' },
+    { value: 'America/Sao_Paulo',                 name: 'São Paulo' },
+    { value: 'America/Argentina/Buenos_Aires',    name: 'Buenos Aires' },
+  ]},
+];
+
+// Lookup name for a tz value
+function tzName(tz) {
+  for (const g of TZ_GROUPS)
+    for (const o of g.options)
+      if (o.value === tz) return o.name;
+  return tz;
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────
+const NS = 'http://www.w3.org/2000/svg';
+const CX = 300, CY = 300;
+const PALETTE = ['#58a6ff','#3fb950','#d2a8ff','#ffa657','#ff7b72','#79c0ff','#56d364','#e3b341'];
+
+const OVL_R  = 80,  OVL_W  = 13;
+const ZN_IN  = 112, ZN_OUT = 218, ZN_W = 12;
+const MIN_R  = 240, MIN_W  = 9;
+const TICK_I = 253, TICK_O = 259;
+const LBL_R  = 274;
+const FACE_R = 288;
+
+// ── URL sharing ────────────────────────────────────────────────────────────
+function zonesFromHash() {
+  const h = location.hash;
+  if (!h.startsWith('#z=')) return null;
+  try {
+    const parsed = JSON.parse(atob(h.slice(3)));
+    if (Array.isArray(parsed) && parsed.length > 0 &&
+        parsed.every(z => z.tz && typeof z.wsMin === 'number' && typeof z.weMin === 'number'))
+      return parsed;
+  } catch(e) {}
+  return null;
+}
+
+function updateHash() {
+  try { history.replaceState(null, '', '#z=' + btoa(JSON.stringify(zones))); } catch(e) {}
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'tz-overlap-zones';
+const DEFAULT_ZONES = [
+  { name: 'Auckland',  tz: 'Pacific/Auckland',   wsMin: 9*60, weMin: 17*60 },
+  { name: 'Lisbon',    tz: 'Europe/Lisbon',       wsMin: 9*60, weMin: 17*60 },
+  { name: 'Seattle',   tz: 'America/Los_Angeles', wsMin: 9*60, weMin: 17*60 },
+  { name: 'Denver',    tz: 'America/Denver',      wsMin: 9*60, weMin: 17*60 },
+  { name: 'St. Louis', tz: 'America/Chicago',     wsMin: 9*60, weMin: 17*60 },
+];
+let zones = DEFAULT_ZONES.map(z => ({ ...z }));
+let focusedZone  = null;
+let editingName  = false;  // true while user is editing a city name inline
+
+function saveZones() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(zones)); } catch(e) {}
+  updateHash();
+}
+
+function loadZones() {
+  // URL hash takes priority over localStorage (enables link sharing)
+  const fromHash = zonesFromHash();
+  if (fromHash) { zones = fromHash; return; }
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0 &&
+          parsed.every(z => z.tz && typeof z.wsMin === 'number' && typeof z.weMin === 'number')) {
+        zones = parsed;
+      }
+    }
+  } catch(e) {}
+}
+
+// ── Timezone math ──────────────────────────────────────────────────────────
+function getOffsetMin(tz) {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year:'numeric', month:'numeric', day:'numeric',
+    hour:'numeric', minute:'numeric', second:'numeric', hour12: false,
+  }).formatToParts(now);
+  const get = t => +parts.find(p => p.type === t).value;
+  const ms = Date.UTC(get('year'), get('month')-1, get('day'),
+                      get('hour') % 24, get('minute'), get('second'));
+  return Math.round((ms - now.getTime()) / 60000);
+}
+
+function userOffset() { return -new Date().getTimezoneOffset(); }
+
+// When a zone is focused, use its offset as the reference clock
+function referenceOffset() {
+  if (focusedZone !== null && focusedZone < zones.length)
+    return getOffsetMin(zones[focusedZone].tz);
+  return userOffset();
+}
+
+function localRange(zone) {
+  const delta = getOffsetMin(zone.tz) - referenceOffset();
+  const s = ((zone.wsMin - delta) % 1440 + 1440) % 1440;
+  const e = ((zone.weMin - delta) % 1440 + 1440) % 1440;
+  return { start: s, end: e, wraps: e < s };
+}
+
+function calcOverlap() {
+  if (!zones.length) return [];
+  const ranges = zones.map(z => localRange(z));
+  const result = []; let open = false, from = 0;
+  for (let m = 0; m < 1440; m++) {
+    const all = ranges.every(r => r.wraps ? (m >= r.start || m < r.end) : (m >= r.start && m < r.end));
+    if (all  && !open) { open = true;  from = m; }
+    if (!all && open)  { result.push({ start: from, end: m }); open = false; }
+  }
+  if (open) result.push({ start: from, end: 1440 });
+  return result;
+}
+
+function zoneColor(i) { return PALETTE[i % PALETTE.length]; }
+
+// ── SVG helpers ───────────────────────────────────────────────────────────
+function el(tag, attrs = {}, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function pt(r, localMin) {
+  const a = (localMin / 1440) * 2 * Math.PI;
+  return { x: CX + r * Math.sin(a), y: CY - r * Math.cos(a) };
+}
+
+function arcD(r, startMin, endMin) {
+  const dur = ((endMin - startMin) + 1440) % 1440;
+  if (dur === 0) return null;
+  const s = pt(r, startMin), e = pt(r, endMin);
+  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${dur > 720 ? 1 : 0} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+}
+
+function addArc(parent, r, range, color, strokeW, extra = {}) {
+  const base = { fill:'none', stroke: color, 'stroke-width': strokeW, 'stroke-linecap':'round', ...extra };
+  if (range.wraps) {
+    const d1 = arcD(r, range.start, 1440), d2 = arcD(r, 0, range.end);
+    if (d1) parent.appendChild(el('path', { d: d1, ...base }));
+    if (d2) parent.appendChild(el('path', { d: d2, ...base }));
+  } else {
+    const d = arcD(r, range.start, range.end);
+    if (d) parent.appendChild(el('path', { d, ...base }));
+  }
+}
+
+// Place label radially just outside the arc band, floating in the dark space between rings.
+function addEndLabel(parent, r, localMin, text, color) {
+  const p = pt(r + ZN_W / 2 + 6, localMin);
+  parent.appendChild(el('text', {
+    x: p.x.toFixed(2), y: p.y.toFixed(2),
+    fill: color, opacity: '0.9',
+    'font-size': '7.5', 'font-family': 'system-ui,sans-serif',
+    'text-anchor': 'middle', 'dominant-baseline': 'middle',
+  }, text));
+}
+
+// ── Daylight calculation ───────────────────────────────────────────────────
+// Approximate lat/lng for known timezones — no location prompt needed
+const TZ_COORDS = {
+  'Pacific/Auckland':                { lat:-36.9, lng: 174.8 },
+  'Pacific/Fiji':                    { lat:-18.1, lng: 178.4 },
+  'Australia/Sydney':                { lat:-33.9, lng: 151.2 },
+  'Australia/Melbourne':             { lat:-37.8, lng: 145.0 },
+  'Australia/Perth':                 { lat:-31.9, lng: 115.9 },
+  'Pacific/Honolulu':                { lat: 21.3, lng:-157.8 },
+  'Asia/Tokyo':                      { lat: 35.7, lng: 139.7 },
+  'Asia/Seoul':                      { lat: 37.6, lng: 127.0 },
+  'Asia/Shanghai':                   { lat: 31.2, lng: 121.5 },
+  'Asia/Singapore':                  { lat:  1.4, lng: 103.8 },
+  'Asia/Bangkok':                    { lat: 13.8, lng: 100.5 },
+  'Asia/Kolkata':                    { lat: 22.6, lng:  88.4 },
+  'Asia/Dubai':                      { lat: 25.2, lng:  55.3 },
+  'Asia/Riyadh':                     { lat: 24.7, lng:  46.7 },
+  'Europe/Moscow':                   { lat: 55.8, lng:  37.6 },
+  'Europe/Istanbul':                 { lat: 41.0, lng:  28.9 },
+  'Europe/Helsinki':                 { lat: 60.2, lng:  25.0 },
+  'Europe/Berlin':                   { lat: 52.5, lng:  13.4 },
+  'Europe/London':                   { lat: 51.5, lng:  -0.1 },
+  'Europe/Lisbon':                   { lat: 38.7, lng:  -9.1 },
+  'UTC':                             { lat:  0.0, lng:   0.0 },
+  'Africa/Lagos':                    { lat:  6.5, lng:   3.4 },
+  'Africa/Nairobi':                  { lat: -1.3, lng:  36.8 },
+  'Africa/Johannesburg':             { lat:-26.2, lng:  28.0 },
+  'America/New_York':                { lat: 40.7, lng: -74.0 },
+  'America/Chicago':                 { lat: 41.9, lng: -87.6 },
+  'America/Denver':                  { lat: 39.7, lng:-104.9 },
+  'America/Phoenix':                 { lat: 33.4, lng:-112.1 },
+  'America/Los_Angeles':             { lat: 34.1, lng:-118.2 },
+  'America/Anchorage':               { lat: 61.2, lng:-149.9 },
+  'America/Sao_Paulo':               { lat:-23.5, lng: -46.6 },
+  'America/Argentina/Buenos_Aires':  { lat:-34.6, lng: -58.4 },
+};
+
+function tzCoords(tz) {
+  if (TZ_COORDS[tz]) return TZ_COORDS[tz];
+  // Fallback: approximate from UTC offset (longitude) + 40°N (latitude)
+  const lng = getOffsetMin(tz) / 4;
+  return { lat: 40, lng };
+}
+
+function calcSunTimes(lat, lng) {
+  // Spencer (1971) approximation — accurate to ~5 minutes
+  // Returns { sunrise, sunset } in UTC minutes (0–1440), or null for polar conditions
+  const now  = new Date();
+  const toR  = d => d * Math.PI / 180;
+  const doy  = Math.ceil((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  const B    = toR((doy - 1) * 360 / 365);
+
+  // Declination (radians)
+  const dec = 0.006918 - 0.399912 * Math.cos(B)   + 0.070257 * Math.sin(B)
+            - 0.006758 * Math.cos(2*B) + 0.000907 * Math.sin(2*B)
+            - 0.002697 * Math.cos(3*B) + 0.001480 * Math.sin(3*B);
+
+  // Equation of time (minutes)
+  const EqT = 229.18 * (0.000075 + 0.001868 * Math.cos(B) - 0.032077 * Math.sin(B)
+              - 0.014615 * Math.cos(2*B) - 0.040849 * Math.sin(2*B));
+
+  // Solar noon in UTC minutes
+  const noon = 720 - 4 * lng - EqT;
+
+  // Hour angle at sunrise/sunset (standard zenith 90.833° inc. refraction)
+  const cosHA = (Math.cos(toR(90.833)) - Math.sin(toR(lat)) * Math.sin(dec))
+              / (Math.cos(toR(lat)) * Math.cos(dec));
+  if (cosHA > 1 || cosHA < -1) return null; // polar night / midnight sun
+
+  const HA = Math.acos(cosHA) * 180 / Math.PI * 4; // degrees → minutes
+  return {
+    sunrise: ((noon - HA) % 1440 + 1440) % 1440,
+    sunset:  ((noon + HA) % 1440 + 1440) % 1440,
+  };
+}
+
+// ── Hover clock tooltip ────────────────────────────────────────────────────
+function clientToClockMin(clientX, clientY) {
+  const svg = document.getElementById('clock');
+  const rect = svg.getBoundingClientRect();
+  // viewBox is 600×600, preserveAspectRatio xMidYMid meet
+  const scale = Math.min(rect.width, rect.height) / 600;
+  const offX  = (rect.width  - 600 * scale) / 2;
+  const offY  = (rect.height - 600 * scale) / 2;
+  const svgX  = (clientX - rect.left - offX) / scale;
+  const svgY  = (clientY - rect.top  - offY) / scale;
+  const dx = svgX - CX, dy = svgY - CY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 40 || dist > FACE_R + 10) return null;
+  const ang = Math.atan2(dx, -dy); // 0 = top (midnight), clockwise
+  return ((ang * 1440 / (2 * Math.PI)) + 1440) % 1440;
+}
+
+let _hoverTip;
+function showHoverTip(clientX, clientY, clockMin) {
+  if (!_hoverTip) _hoverTip = document.getElementById('hover-tip');
+  const refOff = referenceOffset();
+  const hh = Math.floor(clockMin / 60) % 24, mm = Math.round(clockMin) % 60;
+  const ap = hh < 12 ? 'am' : 'pm';
+  const refStr = `${hh % 12 || 12}${mm ? ':' + String(mm).padStart(2, '0') : ''}${ap}`;
+  let html = `<div class="ht-ref">${refStr} on clock</div>`;
+  zones.forEach((zone, i) => {
+    const zMin = ((clockMin + getOffsetMin(zone.tz) - refOff) + 1440) % 1440;
+    const zh = Math.floor(zMin / 60) % 24, zm = Math.round(zMin) % 60;
+    const zap = zh < 12 ? 'am' : 'pm';
+    const zStr = `${zh % 12 || 12}${zm ? ':' + String(zm).padStart(2, '0') : ''}${zap}`;
+    const c = zoneColor(i);
+    html += `<div class="ht-row"><div class="ht-dot" style="background:${c}"></div><span class="ht-name">${zone.name}</span><span class="ht-val" style="color:${c}">${zStr}</span></div>`;
+  });
+  _hoverTip.innerHTML = html;
+  _hoverTip.style.display = 'block';
+  const tipW = 160, tipH = _hoverTip.offsetHeight || 110;
+  let tx = clientX + 16, ty = clientY - 10;
+  if (tx + tipW > window.innerWidth  - 8) tx = clientX - tipW - 16;
+  if (ty + tipH > window.innerHeight - 8) ty = window.innerHeight - tipH - 8;
+  _hoverTip.style.left = tx + 'px';
+  _hoverTip.style.top  = ty + 'px';
+}
+
+function hideHoverTip() {
+  if (!_hoverTip) _hoverTip = document.getElementById('hover-tip');
+  _hoverTip.style.display = 'none';
+}
+
+// Pre-generated star field — positions are fixed, only drawn inside the night sector
+const STARS = Array.from({ length: 72 }, (_, i) => {
+  // Use a deterministic-ish spread so stars don't jump on redraw
+  const seed = i * 2654435761;
+  const ang = (seed * 1.618033) % 1440;
+  const rad = 88 + ((seed * 0.382) % (FACE_R - 96));  // avoid center clock area
+  const sz  = 0.4 + ((seed * 0.127) % 1.1);
+  const op  = 0.15 + ((seed * 0.093) % 0.45);
+  return { ang, rad, sz, op };
+});
+
+function drawDaylight() {
+  if (!gDaylight) return;
+  gDaylight.innerHTML = '';
+
+  // Use coordinates for the reference timezone (city in focus, or user's own tz)
+  const refTz = (focusedZone !== null && focusedZone < zones.length)
+    ? zones[focusedZone].tz
+    : Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const coords = tzCoords(refTz);
+  const sun = calcSunTimes(coords.lat, coords.lng);
+  if (!sun) return;
+
+  // Convert UTC sunrise/sunset to reference timezone local minutes
+  const refOff = referenceOffset();
+  const rise = ((sun.sunrise + refOff) % 1440 + 1440) % 1440;
+  const set  = ((sun.sunset  + refOff) % 1440 + 1440) % 1440;
+  const dur  = ((set - rise) + 1440) % 1440;
+  if (dur === 0 || dur === 1440) return;
+
+  // Rim arc marking the reference tz's daytime span
+  const r = FACE_R - 1;
+  const rimD = arcD(r, rise, set);
+  if (rimD) gDaylight.appendChild(el('path', {
+    d: rimD, fill: 'none', stroke: 'rgba(255,170,40,0.4)', 'stroke-width': 3, 'stroke-linecap': 'round',
+  }));
+
+  // Sunrise dot (amber)
+  const riseP = pt(r, rise);
+  gDaylight.appendChild(el('circle', { cx: riseP.x.toFixed(2), cy: riseP.y.toFixed(2), r: 3.5, fill: 'rgba(255,210,70,0.9)' }));
+
+  // Crescent moon at sunset — two overlapping circles
+  const setP = pt(r, set);
+  gDaylight.appendChild(el('circle', { cx: setP.x.toFixed(2), cy: setP.y.toFixed(2), r: 4.8, fill: 'rgba(190,210,248,0.92)' }));
+  // Bite circle offset right+up to carve the crescent (opening toward upper-left ☽)
+  gDaylight.appendChild(el('circle', { cx: (setP.x + 2.6).toFixed(2), cy: (setP.y - 1.2).toFixed(2), r: 3.8, fill: '#0a0d12' }));
+
+  // Stars in the nighttime sector (from sunset to sunrise, through midnight)
+  const inNight = a => (((a - rise) + 1440) % 1440) >= dur;
+  STARS.forEach(({ ang, rad: srad, sz, op }) => {
+    if (!inNight(ang)) return;
+    const p2 = pt(srad, ang);
+    gDaylight.appendChild(el('circle', { cx: p2.x.toFixed(2), cy: p2.y.toFixed(2), r: sz, fill: '#dde8ff', opacity: op.toFixed(2) }));
+  });
+}
+
+// ── SVG groups ────────────────────────────────────────────────────────────
+let gDaylight;
+let gZones, gDynamic, gCenter, centerClickTarget;
+
+function initSVG() {
+  const svg = document.getElementById('clock');
+  svg.innerHTML = '';
+
+  svg.appendChild(el('circle', { cx:CX, cy:CY, r:FACE_R, fill:'#0a0d12' }));
+
+  // Daylight sector — drawn early so it sits behind everything
+  gDaylight = el('g');
+  svg.appendChild(gDaylight);
+  drawDaylight();
+
+  svg.appendChild(el('circle', { cx:CX, cy:CY, r:FACE_R, fill:'none', stroke:'#21262d', 'stroke-width':1 }));
+
+  // Hour tick marks
+  for (let h = 0; h < 24; h++) {
+    const min = h * 60, main = h % 6 === 0;
+    const s = pt(main ? TICK_I - 4 : TICK_I, min), e = pt(TICK_O, min);
+    svg.appendChild(el('line', {
+      x1:s.x.toFixed(2), y1:s.y.toFixed(2), x2:e.x.toFixed(2), y2:e.y.toFixed(2),
+      stroke: main ? '#3d4452' : '#252b35', 'stroke-width': main ? 2 : 1,
+    }));
+  }
+
+  // 24h labels
+  [['0','midnight'],['360','6am'],['720','noon'],['1080','6pm']].forEach(([m, lbl]) => {
+    const p = pt(LBL_R, +m);
+    svg.appendChild(el('text', {
+      x: p.x.toFixed(2), y: p.y.toFixed(2), fill:'#4a5261',
+      'font-size':'9', 'font-family':'system-ui,sans-serif',
+      'text-anchor':'middle', 'dominant-baseline':'middle',
+    }, lbl));
+  });
+
+  // Click background to clear focus
+  const bg = el('rect', { x:0, y:0, width:600, height:600, fill:'transparent' });
+  bg.addEventListener('click', clearFocus);
+  svg.appendChild(bg);
+
+  gZones   = el('g'); svg.appendChild(gZones);
+  gDynamic = el('g'); svg.appendChild(gDynamic);
+
+  // Center group
+  gCenter = el('g');
+  gCenter.appendChild(el('circle', { cx:CX, cy:CY, r: OVL_R - OVL_W/2 - 1, fill:'#0a0d12' }));
+  // Focus ring (colored border when a zone is selected) — updated in buildZones
+  gCenter.appendChild(el('circle', {
+    id:'focus-ring', cx:CX, cy:CY, r: OVL_R - OVL_W/2 - 2,
+    fill:'none', stroke:'transparent', 'stroke-width':1.5,
+  }));
+  gCenter.appendChild(el('text', {
+    id:'cc', x:CX, y:CY-20, fill:'#8b949e', 'font-size':'9',
+    'font-family':'system-ui,sans-serif', 'text-anchor':'middle', 'dominant-baseline':'middle',
+  }, ''));
+  gCenter.appendChild(el('text', {
+    id:'ct', x:CX, y:CY-4, fill:'#e6edf3', 'font-size':'21', 'font-weight':'600',
+    'font-family':'system-ui,sans-serif', 'text-anchor':'middle', 'dominant-baseline':'middle',
+    'font-variant-numeric':'tabular-nums',
+  }, ''));
+  gCenter.appendChild(el('text', {
+    id:'cd', x:CX, y:CY+16, fill:'#8b949e', 'font-size':'9',
+    'font-family':'system-ui,sans-serif', 'text-anchor':'middle', 'dominant-baseline':'middle',
+  }, ''));
+  // Invisible click target over center (cleared focus)
+  centerClickTarget = el('circle', { cx:CX, cy:CY, r: OVL_R - OVL_W/2 - 1, fill:'transparent' });
+  centerClickTarget.addEventListener('click', e => { e.stopPropagation(); clearFocus(); });
+  gCenter.appendChild(centerClickTarget);
+  svg.appendChild(gCenter);
+}
+
+function clearFocus() {
+  if (focusedZone === null) return;
+  focusedZone = null;
+  buildZones();
+  buildLegend();
+}
+
+function buildZones() {
+  gZones.innerHTML = '';
+  drawDaylight();
+  const total = zones.length, anyFocused = focusedZone !== null;
+
+  // Ring backgrounds
+  zones.forEach((_, i) => {
+    gZones.appendChild(el('circle', { cx:CX, cy:CY, r:zoneR(i,total),
+      fill:'none', stroke:'rgba(255,255,255,0.04)', 'stroke-width':ZN_W }));
+  });
+  gZones.appendChild(el('circle', { cx:CX, cy:CY, r:OVL_R,
+    fill:'none', stroke:'rgba(255,255,255,0.04)', 'stroke-width':OVL_W }));
+  gZones.appendChild(el('circle', { cx:CX, cy:CY, r:MIN_R,
+    fill:'none', stroke:'rgba(255,255,255,0.04)', 'stroke-width':MIN_W }));
+
+  // Per-ring daylight arcs — each ring shows that city's own sunrise→sunset in the current reference frame
+  zones.forEach((zone, i) => {
+    const r = zoneR(i, total);
+    const coords = tzCoords(zone.tz);
+    const sun = calcSunTimes(coords.lat, coords.lng);
+    if (!sun) return;
+    const dRise = ((sun.sunrise + referenceOffset()) % 1440 + 1440) % 1440;
+    const dSet  = ((sun.sunset  + referenceOffset()) % 1440 + 1440) % 1440;
+    const dDur  = ((dSet - dRise) + 1440) % 1440;
+    if (dDur === 0 || dDur === 1440) return;
+    addArc(gZones, r, { start: dRise, end: dSet, wraps: dSet < dRise },
+           'rgba(255,190,50,0.13)', ZN_W, {});
+  });
+
+  // Zone arcs
+  zones.forEach((zone, i) => {
+    const r       = zoneR(i, total);
+    const range   = localRange(zone);
+    const color   = zoneColor(i);
+    const focused = focusedZone === i;
+
+    const g = el('g', { style: 'cursor:pointer' });
+    // Wide invisible click target
+    g.appendChild(el('circle', { cx:CX, cy:CY, r, fill:'none',
+      stroke:'transparent', 'stroke-width': ZN_W * 2.5 }));
+    // Visible arc
+    addArc(g, r, range, color, ZN_W - 2, {});
+    // Endpoint dots
+    [range.start, range.end].forEach(min => {
+      const p = pt(r, min);
+      g.appendChild(el('circle', { cx:p.x.toFixed(2), cy:p.y.toFixed(2), r:3.5, fill:color }));
+    });
+    // Time labels just outside the arc band
+    addEndLabel(g, r, range.start, fmtLocalMin(range.start), color);
+    addEndLabel(g, r, range.end,   fmtLocalMin(range.end),   color);
+
+    g.addEventListener('click', e => {
+      e.stopPropagation();
+      focusedZone = (focusedZone === i) ? null : i;
+      buildZones(); buildLegend();
+    });
+    gZones.appendChild(g);
+  });
+
+  // Overlap arcs + endpoint time labels
+  calcOverlap().forEach(ovl => {
+    const d = arcD(OVL_R, ovl.start, ovl.end);
+    if (d) gZones.appendChild(el('path', {
+      d, fill:'none', stroke:'#f0d060', 'stroke-width': OVL_W - 2,
+      'stroke-linecap':'round',
+    }));
+    // Endpoint dots
+    [ovl.start, ovl.end].forEach(min => {
+      const p = pt(OVL_R, min);
+      gZones.appendChild(el('circle', { cx:p.x.toFixed(2), cy:p.y.toFixed(2), r:3, fill:'#f0d060' }));
+    });
+    // Time labels just outside the overlap band
+    [ovl.start, ovl.end].forEach(min => {
+      const lp = pt(OVL_R + OVL_W / 2 + 6, min);
+      gZones.appendChild(el('text', {
+        x: lp.x.toFixed(2), y: lp.y.toFixed(2),
+        fill: '#f0d060', opacity: '0.9',
+        'font-size': '7.5', 'font-family': 'system-ui,sans-serif',
+        'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      }, fmtLocalMin(min)));
+    });
+  });
+
+  // Update center focus ring color
+  const ring = document.getElementById('focus-ring');
+  if (anyFocused) {
+    ring.setAttribute('stroke', zoneColor(focusedZone));
+    ring.setAttribute('opacity', '0.5');
+    centerClickTarget.style.cursor = 'pointer';
+  } else {
+    ring.setAttribute('stroke', 'transparent');
+    centerClickTarget.style.cursor = 'default';
+  }
+
+  // Update topbar hint
+  const hint = document.getElementById('top-hint');
+  if (anyFocused) {
+    hint.textContent = `Viewing from ${zones[focusedZone].name}'s perspective · click center or here to return to your time`;
+    hint.classList.add('active');
+    hint.onclick = clearFocus;
+  } else {
+    hint.textContent = 'Click a ring to orient from that city\'s perspective · clock shows your local time';
+    hint.classList.remove('active');
+    hint.onclick = null;
+  }
+}
+
+function zoneR(i, total) {
+  if (total <= 1) return (ZN_IN + ZN_OUT) / 2;
+  return ZN_IN + i * (ZN_OUT - ZN_IN) / (total - 1);
+}
+
+// ── Formatting ─────────────────────────────────────────────────────────────
+function fmtLocalMin(min) {
+  const h = Math.floor(min / 60) % 24, m = min % 60, ap = h < 12 ? 'a' : 'p';
+  return `${h % 12 || 12}${m ? ':' + String(m).padStart(2,'0') : ''}${ap}`;
+}
+function fmtMin(min) {
+  const h = Math.floor(min/60), m = min%60, ap = h < 12 ? 'am' : 'pm';
+  return `${h%12||12}${m?':'+String(m).padStart(2,'0'):''}${ap}`;
+}
+function localTimeStr(tz) {
+  return new Date().toLocaleString('en-US', {
+    timeZone: tz, hour:'numeric', minute:'2-digit', hour12: true, timeZoneName:'short',
+  });
+}
+
+// ── Dynamic tick ───────────────────────────────────────────────────────────
+let lastMinute = -1;
+
+function tick() {
+  const now = new Date();
+
+  // Current time in the reference timezone (user's own tz, or focused zone's tz)
+  const refOff = referenceOffset();
+  // UTC minutes since epoch + offset = local minutes since epoch in ref tz
+  const refTotalMin = (((now.getTime() / 60000) + refOff) % 1440 + 1440) % 1440;
+  const refWholeMin = Math.floor(refTotalMin);
+
+  gDynamic.innerHTML = '';
+
+  // Pulsing halo on focused zone arc
+  if (focusedZone !== null && focusedZone < zones.length) {
+    const fz = zones[focusedZone];
+    const fr = zoneR(focusedZone, zones.length);
+    const frange = localRange(fz);
+    const fcolor = zoneColor(focusedZone);
+    const halo = (Math.sin(Date.now() / 600) + 1) / 2; // 0→1
+    // Wide colored glow
+    addArc(gDynamic, fr, frange, fcolor, ZN_W + 10, {
+      opacity: (0.15 + halo * 0.45).toFixed(3), 'stroke-linecap': 'round',
+    });
+    // White shimmer on the arc surface — makes it look like it's lit up
+    addArc(gDynamic, fr, frange, '#ffffff', ZN_W - 2, {
+      opacity: (halo * 0.35).toFixed(3), 'stroke-linecap': 'round',
+    });
+  }
+
+  // Time hand (points to current time in reference timezone)
+  const tipP = pt(TICK_I - 4, refTotalMin);
+  gDynamic.appendChild(el('line', {
+    x1:CX, y1:CY, x2:tipP.x.toFixed(2), y2:tipP.y.toFixed(2),
+    stroke:'#fff', 'stroke-width':1.5, 'stroke-linecap':'round', opacity:'.85',
+  }));
+  // Pulsing glow at the tip of the hand — animated breathing dot
+  const pulse = (Math.sin(Date.now() / 700) + 1) / 2; // 0→1, ~0.7s period
+  gDynamic.appendChild(el('circle', {
+    cx: tipP.x.toFixed(2), cy: tipP.y.toFixed(2),
+    r: 9, fill: '#fff', opacity: (pulse * 0.22).toFixed(3),
+  }));
+  gDynamic.appendChild(el('circle', {
+    cx: tipP.x.toFixed(2), cy: tipP.y.toFixed(2),
+    r: 3.5, fill: '#fff', opacity: '.9',
+  }));
+  gDynamic.appendChild(el('circle', { cx:CX, cy:CY, r:3, fill:'#fff' }));
+
+  // Center text
+  if (focusedZone !== null && focusedZone < zones.length) {
+    const z = zones[focusedZone];
+    const zt = now.toLocaleTimeString('en-US', {
+      timeZone: z.tz, hour:'numeric', minute:'2-digit', second:'2-digit', hour12: true,
+    });
+    const zabbr = now.toLocaleTimeString('en-US', {
+      timeZone: z.tz, timeZoneName:'short',
+    }).split(' ').pop();
+    const [ztTime, ztAmPm] = zt.split(' ');
+    document.getElementById('cc').textContent = z.name;
+    document.getElementById('ct').textContent = ztTime;
+    document.getElementById('cd').textContent = (ztAmPm ? ztAmPm.toLowerCase() + ' · ' : '') + zabbr;
+  } else {
+    const t = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit', hour12: true });
+    const [tTime, tAmPm] = t.split(' ');
+    document.getElementById('cc').textContent = '';
+    document.getElementById('ct').textContent = tTime;
+    document.getElementById('cd').textContent = (tAmPm ? tAmPm.toLowerCase() + ' · ' : '') + now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  }
+
+  if (lastMinute !== refWholeMin) { buildZones(); buildLegend(); lastMinute = refWholeMin; }
+  requestAnimationFrame(tick);
+}
+
+// ── Legend ─────────────────────────────────────────────────────────────────
+function buildLegend() {
+  if (editingName) return;
+  const leg = document.getElementById('legend');
+  leg.innerHTML = '';
+  const anyFocused = focusedZone !== null;
+  const refLabel = anyFocused ? zones[focusedZone].name : 'yours';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'legend-hdr';
+  hdr.textContent = 'Timezones  ·  click name to rename';
+  leg.appendChild(hdr);
+
+  zones.forEach((zone, i) => {
+    const range = localRange(zone);
+    const item  = document.createElement('div');
+    const isFocused = focusedZone === i;
+    item.className = 'l-item' + (isFocused ? ' selected' : '');
+    if (isFocused) item.style.borderLeftColor = zoneColor(i);
+
+    const dot = document.createElement('div');
+    dot.className = 'l-dot';
+    dot.style.background = zoneColor(i);
+
+    const info = document.createElement('div');
+
+    // Editable city name
+    const nameEl = document.createElement('div');
+    nameEl.className = 'l-city';
+    nameEl.contentEditable = 'true';
+    nameEl.textContent = zone.name;
+    nameEl.title = 'Click to rename';
+    nameEl.addEventListener('focus', () => { editingName = true; });
+    nameEl.addEventListener('blur', () => {
+      zones[i].name = nameEl.textContent.trim() || zone.name;
+      editingName = false;
+      saveZones();
+      buildLegend();
+    });
+    nameEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+    });
+    // Prevent click on name from toggling focus state
+    nameEl.addEventListener('click', e => e.stopPropagation());
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'l-time';
+    timeEl.textContent = localTimeStr(zone.tz);
+
+    const hrsEl = document.createElement('div');
+    hrsEl.className = 'l-hrs';
+    hrsEl.textContent = `${fmtMin(zone.wsMin)}–${fmtMin(zone.weMin)} → ${fmtLocalMin(range.start)}–${fmtLocalMin(range.end)} ${refLabel}`;
+
+    info.append(nameEl, timeEl, hrsEl);
+    item.append(dot, info);
+
+    // Click item (not name) to toggle focus
+    item.addEventListener('click', () => {
+      focusedZone = (focusedZone === i) ? null : i;
+      buildZones(); buildLegend();
+    });
+    leg.appendChild(item);
+  });
+
+  // Overlap
+  const oRanges  = calcOverlap();
+  const totalMin = oRanges.reduce((s, r) => s + r.end - r.start, 0);
+  const ob = document.createElement('div');
+  ob.className = 'overlap-block';
+  const ohdr = document.createElement('div');
+  ohdr.className = 'legend-hdr'; ohdr.textContent = 'Overlap';
+  ob.appendChild(ohdr);
+  if (!totalMin) {
+    const v = document.createElement('div');
+    v.className = 'overlap-val none'; v.textContent = 'No overlap with current hours';
+    ob.appendChild(v);
+  } else {
+    const h = Math.floor(totalMin/60), m = totalMin%60;
+    const v = document.createElement('div');
+    v.className = 'overlap-val';
+    v.textContent = [h&&`${h}h`,m&&`${m}m`].filter(Boolean).join(' ') + ' total';
+    ob.appendChild(v);
+    oRanges.forEach(r => {
+      const d = document.createElement('div'); d.className = 'overlap-range';
+      d.textContent = `${fmtLocalMin(r.start)} – ${fmtLocalMin(r.end)} (your time)`;
+      ob.appendChild(d);
+    });
+  }
+  leg.appendChild(ob);
+
+  const note = document.createElement('div');
+  note.className = 'min-note';
+  note.textContent = anyFocused
+    ? `All arcs shown from ${zones[focusedZone].name}'s perspective. Click center to return to your time.`
+    : 'Click any ring to re-orient the clock from that city\'s perspective.';
+  leg.appendChild(note);
+}
+
+// ── Config panel ───────────────────────────────────────────────────────────
+function minToTime(min) {
+  return `${String(Math.floor(min/60)).padStart(2,'0')}:${String(min%60).padStart(2,'0')}`;
+}
+
+function makeSelect(selectedTz) {
+  const sel = document.createElement('select');
+  TZ_GROUPS.forEach(group => {
+    const og = document.createElement('optgroup');
+    og.label = group.label;
+    group.options.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.name;
+      if (o.value === selectedTz) opt.selected = true;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+  // If tz not in list, add it
+  if (!sel.value || sel.value !== selectedTz) {
+    const opt = document.createElement('option');
+    opt.value = selectedTz; opt.textContent = selectedTz; opt.selected = true;
+    sel.insertBefore(opt, sel.firstChild);
+  }
+  return sel;
+}
+
+function buildConfig() {
+  const container = document.getElementById('cfg-zones');
+  container.innerHTML = '';
+
+  zones.forEach((zone, i) => {
+    const row = document.createElement('div');
+    row.className = 'cfg-zone';
+
+    // Row 1: color dot + timezone select + delete
+    const r1 = document.createElement('div'); r1.className = 'cfg-r1';
+    const dot = document.createElement('div');
+    dot.className = 'cdot'; dot.style.background = zoneColor(i);
+    const sel = makeSelect(zone.tz);
+    sel.addEventListener('change', e => {
+      const chosen = TZ_GROUPS.flatMap(g => g.options).find(o => o.value === e.target.value);
+      zones[i].tz   = e.target.value;
+      zones[i].name = chosen ? chosen.name : e.target.value;
+      saveZones(); buildZones(); buildLegend();
+    });
+    const del = document.createElement('button');
+    del.className = 'del-btn'; del.title = 'Remove'; del.textContent = '✕';
+    del.addEventListener('click', () => {
+      if (zones.length > 1) {
+        if (focusedZone === i) focusedZone = null;
+        else if (focusedZone > i) focusedZone--;
+        zones.splice(i, 1);
+        saveZones(); initSVG(); buildZones(); buildLegend(); buildConfig();
+      }
+    });
+    r1.append(dot, sel, del);
+
+    // Row 2: work hours
+    const r2 = document.createElement('div'); r2.className = 'cfg-r2';
+    const lbl = document.createElement('span'); lbl.className = 'cfg-lbl'; lbl.textContent = 'Hours';
+    const ws = document.createElement('input'); ws.type = 'time'; ws.value = minToTime(zone.wsMin);
+    const we = document.createElement('input'); we.type = 'time'; we.value = minToTime(zone.weMin);
+    ws.addEventListener('change', e => {
+      const [h,m] = e.target.value.split(':').map(Number);
+      zones[i].wsMin = h*60+m; saveZones(); buildZones(); buildLegend();
+    });
+    we.addEventListener('change', e => {
+      const [h,m] = e.target.value.split(':').map(Number);
+      zones[i].weMin = h*60+m; saveZones(); buildZones(); buildLegend();
+    });
+    r2.append(lbl, ws, we);
+
+    row.append(r1, r2);
+    container.appendChild(row);
+  });
+}
+
+document.getElementById('cfg-toggle').addEventListener('click', () => {
+  const body = document.getElementById('cfg-body');
+  body.classList.toggle('hidden');
+  document.getElementById('cfg-arrow').textContent = body.classList.contains('hidden') ? '▸' : '▾';
+});
+
+document.getElementById('add-btn').addEventListener('click', () => {
+  zones.push({ name: 'New City', tz: 'UTC', wsMin: 9*60, weMin: 17*60 });
+  saveZones(); initSVG(); buildZones(); buildLegend(); buildConfig();
+});
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+loadZones();
+initSVG();
+buildZones();
+buildLegend();
+buildConfig();
+requestAnimationFrame(tick);
+updateHash(); // sync hash on first load
+
+// Share button
+document.getElementById('share-btn').addEventListener('click', () => {
+  updateHash();
+  const url = location.href;
+  const btn = document.getElementById('share-btn');
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
+    .catch(() => { prompt('Copy this link:', url); return Promise.reject(); })
+    .then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy link'; btn.classList.remove('copied'); }, 2200);
+    });
+});
+
+// Navigate back/forward with hashed URL
+window.addEventListener('hashchange', () => {
+  const fromHash = zonesFromHash();
+  if (fromHash) {
+    zones = fromHash;
+    focusedZone = null;
+    saveZones(); initSVG(); buildZones(); buildLegend(); buildConfig();
+  }
+});
+
+// Hover tooltip on clock face
+const _clockEl = document.getElementById('clock');
+_clockEl.addEventListener('mousemove', e => {
+  const min = clientToClockMin(e.clientX, e.clientY);
+  if (min !== null) showHoverTip(e.clientX, e.clientY, min);
+  else hideHoverTip();
+});
+_clockEl.addEventListener('mouseleave', hideHoverTip);
+</script>
+</body>
+</html>
